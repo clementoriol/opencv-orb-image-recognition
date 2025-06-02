@@ -66,7 +66,7 @@ async function initCamera(): Promise<void> {
       streaming = true;
       stats.showPanel(0);
       document.body.appendChild(stats.dom);
-      requestAnimationFrame(processVideoFrame);
+      videoElement.requestVideoFrameCallback(processVideoFrame);
     };
   } catch (err) {
     updateStatus(`Camera error: ${err}`);
@@ -345,9 +345,7 @@ function processVideoFrame(): void {
   }
 
   stats.end();
-
-  // 3.8 Loop
-  requestAnimationFrame(processVideoFrame);
+  videoElement.requestVideoFrameCallback(processVideoFrame);
 }
 
 // -----------------------------------------------------------------------------
