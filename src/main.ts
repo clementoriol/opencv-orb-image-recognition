@@ -1,6 +1,9 @@
 // src/main.ts
 import "./style.css";
 import cv from "@techstark/opencv-js";
+import Stats from "stats.js";
+
+const stats = new Stats();
 
 // -----------------------------------------------------------------------------
 // Derive a TS type for “DMatch” by inspecting DMatchVector.get()
@@ -61,6 +64,8 @@ async function initCamera(): Promise<void> {
       videoElement.play();
       adjustCanvasSize();
       streaming = true;
+      stats.showPanel(0);
+      document.body.appendChild(stats.dom);
       requestAnimationFrame(processVideoFrame);
     };
   } catch (err) {
@@ -130,6 +135,7 @@ async function loadReferenceImages(): Promise<void> {
 // -----------------------------------------------------------------------------
 // 3. Main loop: crop+draw video, run ORB, match, draw box
 function processVideoFrame(): void {
+  stats.begin();
   if (!streaming) {
     requestAnimationFrame(processVideoFrame);
     return;
@@ -337,6 +343,8 @@ function processVideoFrame(): void {
   } else {
     updateStatus("No match");
   }
+
+  stats.end();
 
   // 3.8 Loop
   requestAnimationFrame(processVideoFrame);

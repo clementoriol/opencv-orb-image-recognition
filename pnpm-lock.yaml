@@ -2,14 +2,18 @@ lockfileVersion: 5.4
 
 specifiers:
   '@techstark/opencv-js': 4.9.0-release.3
+  '@types/stats.js': ^0.17.4
   '@vitejs/plugin-basic-ssl': ^2.0.0
+  stats.js: ^0.17.0
   typescript: ~5.8.3
   vite: ^6.3.5
 
 dependencies:
   '@techstark/opencv-js': 4.9.0-release.3
+  stats.js: 0.17.0
 
 devDependencies:
+  '@types/stats.js': 0.17.4
   '@vitejs/plugin-basic-ssl': 2.0.0_vite@6.3.5
   typescript: 5.8.3
   vite: 6.3.5
@@ -409,6 +413,10 @@ packages:
     resolution: {integrity: sha512-w28IoSUCJpidD/TGviZwwMJckNESJZXFu7NBZ5YJ4mEUnNraUn9Pm8HSZm/jDF1pDWYKspWE7oVphigUPRakIQ==}
     dev: true
 
+  /@types/stats.js/0.17.4:
+    resolution: {integrity: sha512-jIBvWWShCvlBqBNIZt0KAshWpvSjhkwkEu4ZUcASoAvhmrgAUI2t1dXrjSL4xXVLB4FznPrIsX3nKXFl/Dt4vA==}
+    dev: true
+
   /@vitejs/plugin-basic-ssl/2.0.0_vite@6.3.5:
     resolution: {integrity: sha512-gc9Tjg8bUxBVSTzeWT3Njc0Cl3PakHFKdNfABnZWiUgbxqmHDEn7uECv3fHVylxoYgNzAcmU7ZrILz+BwSo3sA==}
     engines: {node: ^18.0.0 || ^20.0.0 || >=22.0.0}
@@ -528,6 +536,10 @@ packages:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
     engines: {node: '>=0.10.0'}
     dev: true
+
+  /stats.js/0.17.0:
+    resolution: {integrity: sha512-hNKz8phvYLPEcRkeG1rsGmV5ChMjKDAWU7/OJJdDErPBNChQXxCo3WZurGpnWc6gZhAzEPFad1aVgyOANH1sMw==}
+    dev: false
 
   /tinyglobby/0.2.14:
     resolution: {integrity: sha512-tX5e7OM1HnYr2+a2C/4V0htOcSQcoSTH9KgJnVvNm5zm/cyEWKJ7j7YutsH9CxMdtOkkLFy2AHrMci9IM8IPZQ==}

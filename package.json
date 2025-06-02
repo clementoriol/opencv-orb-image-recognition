@@ -9,9 +9,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@techstark/opencv-js": "4.9.0-release.3"
+    "@techstark/opencv-js": "4.9.0-release.3",
+    "stats.js": "^0.17.0"
   },
   "devDependencies": {
+    "@types/stats.js": "^0.17.4",
     "@vitejs/plugin-basic-ssl": "^2.0.0",
     "typescript": "~5.8.3",
     "vite": "^6.3.5"
