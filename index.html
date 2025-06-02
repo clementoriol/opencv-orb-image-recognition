@@ -1,12 +1,24 @@
+<!-- index.html -->
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Test OpenCV Orb image recognition</title>
+    <title>OpenCV.js ORB Recognition</title>
+    <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
+    <div id="video-container">
+      <!-- Hidden video; feed is drawn into the canvas below -->
+      <video id="video" autoplay playsinline></video>
+      <!-- Canvas covers the entire viewport -->
+      <canvas id="canvas-overlay"></canvas>
+    </div>
+
+    <div id="status-bar">
+      <span id="status-text">Initializing...</span>
+    </div>
+
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

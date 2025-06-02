@@ -1,10 +1,16 @@
 lockfileVersion: 5.4
 
 specifiers:
+  '@techstark/opencv-js': 4.9.0-release.3
+  '@vitejs/plugin-basic-ssl': ^2.0.0
   typescript: ~5.8.3
   vite: ^6.3.5
 
+dependencies:
+  '@techstark/opencv-js': 4.9.0-release.3
+
 devDependencies:
+  '@vitejs/plugin-basic-ssl': 2.0.0_vite@6.3.5
   typescript: 5.8.3
   vite: 6.3.5
 
@@ -395,8 +401,21 @@ packages:
     dev: true
     optional: true
 
+  /@techstark/opencv-js/4.9.0-release.3:
+    resolution: {integrity: sha512-y+KoLLlkXVUHWozYlN1vmMD9TQMPJObqml5nPA5vPWgHtOgm8q5O74UtzM23eayidvmeFX6tF5e2gDdyxcpy3Q==}
+    dev: false
+
   /@types/estree/1.0.7:
     resolution: {integrity: sha512-w28IoSUCJpidD/TGviZwwMJckNESJZXFu7NBZ5YJ4mEUnNraUn9Pm8HSZm/jDF1pDWYKspWE7oVphigUPRakIQ==}
+    dev: true
+
+  /@vitejs/plugin-basic-ssl/2.0.0_vite@6.3.5:
+    resolution: {integrity: sha512-gc9Tjg8bUxBVSTzeWT3Njc0Cl3PakHFKdNfABnZWiUgbxqmHDEn7uECv3fHVylxoYgNzAcmU7ZrILz+BwSo3sA==}
+    engines: {node: ^18.0.0 || ^20.0.0 || >=22.0.0}
+    peerDependencies:
+      vite: ^6.0.0
+    dependencies:
+      vite: 6.3.5
     dev: true
 
   /esbuild/0.25.5:
