@@ -4,7 +4,12 @@ Quick Proof of Concept for recognizing and highlighting images from references. 
 
 ## Usage
 
-- Open the app from a mobile device
+- Open the app from a mobile device :
+
+  ![QR Code to production url](./src/qrcode.jpg?raw=true "Title")
+
+  https://opencv-orb-image-recognition-production.up.railway.app/
+
 - Allow the access to the camera (your browser should prompt you, if not check your browser settings)
 - Open up one of the reference images on a desktop computer
   - [Cat ref](./src/references-source/cat.jpg)
