@@ -2,27 +2,15 @@
 import "./style.css";
 import cv from "@techstark/opencv-js";
 import { startCamera } from "./camera/camera";
+import { loadReferenceImages, type ReferenceImage } from "./references/load";
 
-// -----------------------------------------------------------------------------
-// Derive a TS type for “DMatch” by inspecting DMatchVector.get()
 type DMatch = ReturnType<InstanceType<typeof cv.DMatchVector>["get"]>;
 
 // ORB detector + BFMatcher
-// You can bump maxFeatures if you need more keypoints on a 600px image
 let orb!: InstanceType<typeof cv.ORB>;
 let bfMatcher!: InstanceType<typeof cv.BFMatcher>;
+let computedReferences: ReferenceImage[] = [];
 
-interface ReferenceImage {
-  name: string;
-  matGray: InstanceType<typeof cv.Mat>;
-  keypoints: InstanceType<typeof cv.KeyPointVector>;
-  descriptors: InstanceType<typeof cv.Mat>;
-  originalWidth: number; // must match the actual pixel width on disk
-  originalHeight: number; // must match the actual pixel height on disk
-}
-const references: ReferenceImage[] = [];
-
-// Tweak these as needed once your refs are all, say, ~600px on the long side:
 const MIN_GOOD_MATCHES = 15; // how many ratio-test matches to accept
 const RANSAC_REPROJ_THRESHOLD = 5; // in pixels, tighter => fewer outliers
 
@@ -37,60 +25,6 @@ const overlayCanvas = document.getElementById(
 ) as HTMLCanvasElement;
 const overlayCanvasContext = overlayCanvas.getContext("2d")!;
 
-// Load references (assumes you’ve already resized them to 6O0px on the longest side)
-async function loadReferenceImages(): Promise<void> {
-  const refList = [
-    { name: "cat", url: "/references/cat.jpg" },
-    { name: "dog", url: "/references/dog.jpg" },
-  ];
-
-  for (const ref of refList) {
-    const img = new Image();
-    img.src = ref.url;
-    await new Promise<void>((resolve) => {
-      img.onload = () => resolve();
-      img.onerror = () => {
-        console.warn(`Failed to load ${ref.url}`);
-        resolve();
-      };
-    });
-
-    // Read the already-resized image into a Mat
-    const matOriginal = cv.imread(img);
-    const matGray = new cv.Mat();
-    cv.cvtColor(matOriginal, matGray, cv.COLOR_RGBA2GRAY);
-    matOriginal.delete();
-
-    // Detect ORB keypoints + descriptors
-    const keypoints = new cv.KeyPointVector();
-    const descriptors = new cv.Mat();
-    orb.detectAndCompute(matGray, new cv.Mat(), keypoints, descriptors);
-
-    const nRefKP = keypoints.size();
-    console.log(
-      `Loaded "${ref.name}" (${img.width}×${img.height}) → ${nRefKP} keypoints`
-    );
-    if (nRefKP < 20) {
-      console.warn(
-        `"${ref.name}" has only ${nRefKP} keypoints. Consider richer detail or more ORB features.`
-      );
-    }
-
-    references.push({
-      name: ref.name,
-      matGray,
-      keypoints,
-      descriptors,
-      originalWidth: img.width, // matches the offline resized dimensions
-      originalHeight: img.height, // matches the offline resized dimensions
-    });
-
-    updateStatus(`Loaded ${ref.name} (${nRefKP} KP)`);
-  }
-}
-
-// -----------------------------------------------------------------------------
-// 3. Main loop: crop+draw video, run ORB, match, draw box
 function processCameraFrame(
   currentFrameCount: number,
   cameraCanvasContext: CanvasRenderingContext2D
@@ -140,7 +74,7 @@ function processCameraFrame(
   };
   let bestMatch: MatchResult | null = null;
 
-  for (const refImg of references) {
+  for (const refImg of computedReferences) {
     const knnMatches = new cv.DMatchVectorVector();
     bfMatcher.knnMatch(descriptorsScene, refImg.descriptors, knnMatches, 2);
 
@@ -180,7 +114,6 @@ function processCameraFrame(
     const dstMat = cv.matFromArray(goodMatches.length, 2, cv.CV_32F, dstPts);
     const mask = new cv.Mat();
 
-    // RANSAC with 3px threshold
     const homography = cv.findHomography(
       srcMat,
       dstMat,
@@ -248,8 +181,8 @@ function processCameraFrame(
 
   // 3.7 Draw the green quadrilateral on top of the same canvas
   if (bestMatch) {
-    const w = bestMatch.ref.originalWidth; // must match your offline-resized width
-    const h = bestMatch.ref.originalHeight; // must match your offline-resized height
+    const w = bestMatch.ref.originalWidth;
+    const h = bestMatch.ref.originalHeight;
     const corners = cv.matFromArray(4, 1, cv.CV_32FC2, [
       0,
       0,
@@ -293,22 +226,18 @@ function processCameraFrame(
   }
 }
 
-// -----------------------------------------------------------------------------
-/** Update the status bar text. */
+// update the status text in the UI
 function updateStatus(text: string): void {
   const span = document.getElementById("status-text")!;
   span.textContent = text;
 }
 
-// -----------------------------------------------------------------------------
-// 4. onRuntimeInitialized → set up ORB + BFMatcher, load refs, start camera
 const onOpenCvReady = async () => {
-  orb = new cv.ORB(1000); // try 1000 if refs are 600px
+  orb = new cv.ORB(1000); // 1000 keypoints max
   bfMatcher = new cv.BFMatcher(cv.NORM_HAMMING, false);
 
   updateStatus("OpenCV.js ready. Loading references...");
-
-  await loadReferenceImages();
+  computedReferences = await loadReferenceImages(orb);
   updateStatus("References loaded. Starting camera...");
 
   try {

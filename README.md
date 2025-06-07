@@ -12,13 +12,9 @@ Quick Proof of Concept for recognizing and highlighting images from references. 
 
 - Allow the access to the camera (your browser should prompt you, if not check your browser settings)
 - Open up one of the reference images on a desktop computer
-  - [Cat ref](./src/references-source/cat.jpg)
-  - [Dog ref](./src/references-source/dog.jpg)
+  - [Cat ref](./scripts/references-source/cat.jpg)
+  - [Dog ref](./scripts/references-source/dog.jpg)
 - Point your mobile device camera at the reference image, you should see it highlighted in green (note: matching won't work from too far away)
-
-## Notes
-
-- Ref images should be resized at 600px on the larger side, as the algorithm will have trouble matching images from a distance if the ref images are too large
 
 ## Local Dev Setup
 
@@ -55,11 +51,17 @@ When starting, the local server should output the "Network" Url.
 - You'll see a message that the https cert is invalid. This is normal as we don't generate a cert in dev.
 - Click on Advanced -> Proceeed to https://192.168.x.x (unsafe) to ignore the error and proceed to the local server
 
+## Add new Images
+
+- Add images to the `scripts/references-source` folder
+- Run the `pnpm prepare-references` script. This will output them in ./public and prepare the references.json file
+- Reload your page
+
 ## TODO
 
 - [ ] Check how performant it is with ~200 images
 - [ ] Check performance on a lower-end device
 - [ ] Check if we can make a custom OpenCV build with only the features we need to improve loading time
   - [ ] We'll probably need to generate custom typescript types for our custom build
-- [ ] Write a script to resize and precompute the reference images and save them on disk to avoid computing them on the user device every time the app starts
+- [x] Write a script to resize the references images
 - [ ] Clean-up the code, extract into different files and named function

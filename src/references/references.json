@@ -1,0 +1,10 @@
+[
+  {
+    "name": "cat.jpg",
+    "url": "./references/cat.jpg"
+  },
+  {
+    "name": "dog.jpg",
+    "url": "./references/dog.jpg"
+  }
+]
