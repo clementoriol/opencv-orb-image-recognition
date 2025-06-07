@@ -2,7 +2,6 @@
 import "./style.css";
 import cv from "@techstark/opencv-js";
 import { startCamera } from "./camera/camera";
-import { over } from "lodash";
 
 // -----------------------------------------------------------------------------
 // Derive a TS type for “DMatch” by inspecting DMatchVector.get()
