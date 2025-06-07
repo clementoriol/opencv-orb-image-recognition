@@ -18,8 +18,9 @@ Quick Proof of Concept for recognizing and highlighting images from references. 
 
 ## Local Dev Setup
 
-### 1. Install Pnpm
+### 1. Install Pnpm v8
 
+⚠️ Make sure to install v8.x.x
 See [https://pnpm.io/installation](https://pnpm.io/installation)
 
 ### 2. Install depedencies
