@@ -2,6 +2,7 @@
 import "./style.css";
 import cv from "@techstark/opencv-js";
 import { startCamera } from "./camera/camera";
+import { over } from "lodash";
 
 // -----------------------------------------------------------------------------
 // Derive a TS type for “DMatch” by inspecting DMatchVector.get()
@@ -25,6 +26,17 @@ const references: ReferenceImage[] = [];
 // Tweak these as needed once your refs are all, say, ~600px on the long side:
 const MIN_GOOD_MATCHES = 15; // how many ratio-test matches to accept
 const RANSAC_REPROJ_THRESHOLD = 5; // in pixels, tighter => fewer outliers
+
+const cameraSource = document.getElementById(
+  "camera-source"
+) as HTMLVideoElement;
+const cameraCanvas = document.getElementById(
+  "camera-canvas"
+) as HTMLCanvasElement;
+const overlayCanvas = document.getElementById(
+  "overlay-canvas"
+) as HTMLCanvasElement;
+const overlayCanvasContext = overlayCanvas.getContext("2d")!;
 
 // Load references (assumes you’ve already resized them to 6O0px on the longest side)
 async function loadReferenceImages(): Promise<void> {
@@ -84,6 +96,20 @@ function processCameraFrame(
   currentFrameCount: number,
   cameraCanvasContext: CanvasRenderingContext2D
 ): void {
+  // Make sure overlay canvas matches the camera canvas size
+  if (
+    overlayCanvas.width !== cameraCanvasContext.canvas.width ||
+    overlayCanvas.height !== cameraCanvasContext.canvas.height
+  ) {
+    overlayCanvas.width = cameraCanvasContext.canvas.width;
+    overlayCanvas.height = cameraCanvasContext.canvas.height;
+  }
+
+  if (currentFrameCount % 2 !== 0) {
+    // Skip some frames to reduce load
+    return;
+  }
+
   // Grab pixels → RGBA Mat → Grayscale Mat
   const imgData = cameraCanvasContext.getImageData(
     0,
@@ -213,6 +239,14 @@ function processCameraFrame(
   descriptorsScene.delete();
   matGray.delete();
 
+  // Clear the overlay canvas
+  overlayCanvasContext.clearRect(
+    0,
+    0,
+    overlayCanvas.width,
+    overlayCanvas.height
+  );
+
   // 3.7 Draw the green quadrilateral on top of the same canvas
   if (bestMatch) {
     const w = bestMatch.ref.originalWidth; // must match your offline-resized width
@@ -230,17 +264,23 @@ function processCameraFrame(
     const dstCorners = new cv.Mat();
     cv.perspectiveTransform(corners, dstCorners, bestMatch.homography);
 
-    cameraCanvasContext.strokeStyle = "lime";
-    cameraCanvasContext.lineWidth = 4;
-    cameraCanvasContext.beginPath();
-    for (let i = 0; i < 4; i++) {
-      const x = dstCorners.data32F[i * 2];
-      const y = dstCorners.data32F[i * 2 + 1];
-      if (i === 0) cameraCanvasContext.moveTo(x, y);
-      else cameraCanvasContext.lineTo(x, y);
+    // get your 4 transformed corner points
+    const pts = dstCorners.data32F; // [x0,y0,  x1,y1,  x2,y2,  x3,y3]
+
+    // style
+    overlayCanvasContext.strokeStyle = "lime";
+    overlayCanvasContext.lineWidth = 4;
+
+    // build the polygon
+    overlayCanvasContext.beginPath();
+    // move to the very first corner
+    overlayCanvasContext.moveTo(pts[0], pts[1]);
+    // draw lines to the remaining corners
+    for (let i = 1; i < 4; i++) {
+      overlayCanvasContext.lineTo(pts[i * 2], pts[i * 2 + 1]);
     }
-    cameraCanvasContext.closePath();
-    cameraCanvasContext.stroke();
+    overlayCanvasContext.closePath(); // closes back to (pts[0], pts[1])
+    overlayCanvasContext.stroke();
 
     bestMatch.homography.delete();
     corners.delete();
@@ -274,10 +314,8 @@ const onOpenCvReady = async () => {
 
   try {
     await startCamera({
-      videoElement: document.getElementById("video-source") as HTMLVideoElement,
-      canvasElement: document.getElementById(
-        "video-canvas"
-      ) as HTMLCanvasElement,
+      videoElement: cameraSource,
+      canvasElement: cameraCanvas,
       onEachCameraFrame: processCameraFrame,
       options: {
         showFps: true,

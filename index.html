@@ -8,11 +8,13 @@
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
-    <div id="video-container">
+    <div id="container">
       <!-- Hidden video; feed is drawn into the canvas below -->
-      <video id="video-source" autoplay playsinline></video>
-      <!-- Canvas covers the entire viewport -->
-      <canvas id="video-canvas"></canvas>
+      <video id="camera-source" autoplay playsinline></video>
+      <!-- The canvas the video is rendered into -->
+      <canvas id="camera-canvas"></canvas>
+      <!-- The canvas we render HUD elements (green borders into) -->
+      <canvas id="overlay-canvas"></canvas>
     </div>
 
     <div id="status-bar">
