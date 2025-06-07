@@ -9,7 +9,7 @@ export const drawCameraFrameOnCanvas = (
   canvasElement: HTMLCanvasElement
 ) => {
   const canvasAspect = canvasElement.width / canvasElement.height;
-  const ctx = canvasElement.getContext("2d");
+  const ctx = canvasElement.getContext("2d", { willReadFrequently: true });
 
   if (!ctx) {
     throw new Error("Cannot get Canvas 2D context");
