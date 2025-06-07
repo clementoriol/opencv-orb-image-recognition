@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# References (built by scripts)
+src/references/references.json
+public/references/*
