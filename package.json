@@ -10,9 +10,11 @@
   },
   "dependencies": {
     "@techstark/opencv-js": "4.9.0-release.3",
-    "stats.js": "^0.17.0"
+    "stats.js": "^0.17.0",
+    "lodash": "^4.17.21"
   },
   "devDependencies": {
+    "@types/lodash": "^4.17.17",
     "@types/stats.js": "^0.17.4",
     "@vitejs/plugin-basic-ssl": "^2.0.0",
     "typescript": "~5.8.3",

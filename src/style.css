@@ -14,13 +14,13 @@ body {
   overflow: hidden;
 }
 
-/* Completely hide the <video> element */
-#video {
+#video-source {
+  position: relative;
   display: none;
 }
 
 /* Make the canvas fill the viewport */
-#canvas-overlay {
+#video-canvas {
   position: absolute;
   top: 0;
   left: 0;
