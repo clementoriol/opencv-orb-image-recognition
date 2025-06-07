@@ -1,19 +1,12 @@
 // src/main.ts
 import "./style.css";
 import cv from "@techstark/opencv-js";
-import Stats from "stats.js";
-
-const stats = new Stats();
+import { startCamera } from "./camera/camera";
+import { over } from "lodash";
 
 // -----------------------------------------------------------------------------
 // Derive a TS type for “DMatch” by inspecting DMatchVector.get()
 type DMatch = ReturnType<InstanceType<typeof cv.DMatchVector>["get"]>;
-
-// Global references
-let videoElement!: HTMLVideoElement;
-let canvasOverlay!: HTMLCanvasElement;
-let ctxOverlay!: CanvasRenderingContext2D;
-let streaming = false;
 
 // ORB detector + BFMatcher
 // You can bump maxFeatures if you need more keypoints on a 600px image
@@ -34,53 +27,18 @@ const references: ReferenceImage[] = [];
 const MIN_GOOD_MATCHES = 15; // how many ratio-test matches to accept
 const RANSAC_REPROJ_THRESHOLD = 5; // in pixels, tighter => fewer outliers
 
-// -----------------------------------------------------------------------------
-// 1. Initialize camera + canvas + resize listener
-async function initCamera(): Promise<void> {
-  videoElement = document.getElementById("video") as HTMLVideoElement;
-  canvasOverlay = document.getElementById(
-    "canvas-overlay"
-  ) as HTMLCanvasElement;
-  const ctx = canvasOverlay.getContext("2d");
-  if (!ctx) throw new Error("Cannot get 2D context");
-  ctxOverlay = ctx;
+const cameraSource = document.getElementById(
+  "camera-source"
+) as HTMLVideoElement;
+const cameraCanvas = document.getElementById(
+  "camera-canvas"
+) as HTMLCanvasElement;
+const overlayCanvas = document.getElementById(
+  "overlay-canvas"
+) as HTMLCanvasElement;
+const overlayCanvasContext = overlayCanvas.getContext("2d")!;
 
-  window.addEventListener("resize", adjustCanvasSize);
-  window.addEventListener("orientationchange", adjustCanvasSize);
-
-  const constraints: MediaStreamConstraints = {
-    audio: false,
-    video: {
-      facingMode: { ideal: "environment" },
-      width: { ideal: 1280 },
-      height: { ideal: 720 },
-    },
-  };
-
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia(constraints);
-    videoElement.srcObject = stream;
-    videoElement.onloadedmetadata = () => {
-      videoElement.play();
-      adjustCanvasSize();
-      streaming = true;
-      stats.showPanel(0);
-      document.body.appendChild(stats.dom);
-      videoElement.requestVideoFrameCallback(processVideoFrame);
-    };
-  } catch (err) {
-    updateStatus(`Camera error: ${err}`);
-    console.error(err);
-  }
-}
-
-function adjustCanvasSize(): void {
-  canvasOverlay.width = window.innerWidth;
-  canvasOverlay.height = window.innerHeight;
-}
-
-// -----------------------------------------------------------------------------
-// 2. Load references (assumes you’ve already resized them to 6O0px on the longest side)
+// Load references (assumes you’ve already resized them to 6O0px on the longest side)
 async function loadReferenceImages(): Promise<void> {
   const refList = [
     { name: "cat", url: "/references/cat.jpg" },
@@ -134,60 +92,37 @@ async function loadReferenceImages(): Promise<void> {
 
 // -----------------------------------------------------------------------------
 // 3. Main loop: crop+draw video, run ORB, match, draw box
-function processVideoFrame(): void {
-  stats.begin();
-  if (!streaming) {
-    requestAnimationFrame(processVideoFrame);
+function processCameraFrame(
+  currentFrameCount: number,
+  cameraCanvasContext: CanvasRenderingContext2D
+): void {
+  // Make sure overlay canvas matches the camera canvas size
+  if (
+    overlayCanvas.width !== cameraCanvasContext.canvas.width ||
+    overlayCanvas.height !== cameraCanvasContext.canvas.height
+  ) {
+    overlayCanvas.width = cameraCanvasContext.canvas.width;
+    overlayCanvas.height = cameraCanvasContext.canvas.height;
+  }
+
+  if (currentFrameCount % 2 !== 0) {
+    // Skip some frames to reduce load
     return;
   }
 
-  const width = canvasOverlay.width;
-  const height = canvasOverlay.height;
-
-  // 3.1 Compute “cover” crop for video (CSS object-fit: cover)
-  const vidW = videoElement.videoWidth;
-  const vidH = videoElement.videoHeight;
-  if (vidW === 0 || vidH === 0) {
-    requestAnimationFrame(processVideoFrame);
-    return;
-  }
-
-  const canvasAspect = width / height;
-  const videoAspect = vidW / vidH;
-
-  let sx = 0,
-    sy = 0,
-    sW = vidW,
-    sH = vidH;
-  if (videoAspect > canvasAspect) {
-    sW = vidH * canvasAspect;
-    sx = (vidW - sW) / 2;
-  } else {
-    sH = vidW / canvasAspect;
-    sy = (vidH - sH) / 2;
-  }
-
-  // 3.2 Draw cropped video into full-screen canvas
-  ctxOverlay.drawImage(
-    videoElement,
-    sx,
-    sy,
-    sW,
-    sH, // source rectangle on the <video>
+  // Grab pixels → RGBA Mat → Grayscale Mat
+  const imgData = cameraCanvasContext.getImageData(
     0,
     0,
-    width,
-    height // destination on the canvas
+    cameraCanvasContext.canvas.width,
+    cameraCanvasContext.canvas.height
   );
-
-  // 3.3 Grab pixels → RGBA Mat → Grayscale Mat
-  const imgData = ctxOverlay.getImageData(0, 0, width, height);
   const matRGBA = cv.matFromImageData(imgData);
   const matGray = new cv.Mat();
   cv.cvtColor(matRGBA, matGray, cv.COLOR_RGBA2GRAY);
   matRGBA.delete();
 
-  // 3.4 ORB detect + compute on the scene
+  // ORB detect + compute on the scene
   const keypointsScene = new cv.KeyPointVector();
   const descriptorsScene = new cv.Mat();
   orb.detectAndCompute(matGray, new cv.Mat(), keypointsScene, descriptorsScene);
@@ -198,7 +133,7 @@ function processVideoFrame(): void {
     console.warn("Few scene keypoints; try better lighting or move closer");
   }
 
-  // 3.5 Match each reference
+  // Match each reference
   type MatchResult = {
     ref: ReferenceImage;
     goodMatches: DMatch[];
@@ -304,6 +239,14 @@ function processVideoFrame(): void {
   descriptorsScene.delete();
   matGray.delete();
 
+  // Clear the overlay canvas
+  overlayCanvasContext.clearRect(
+    0,
+    0,
+    overlayCanvas.width,
+    overlayCanvas.height
+  );
+
   // 3.7 Draw the green quadrilateral on top of the same canvas
   if (bestMatch) {
     const w = bestMatch.ref.originalWidth; // must match your offline-resized width
@@ -321,17 +264,23 @@ function processVideoFrame(): void {
     const dstCorners = new cv.Mat();
     cv.perspectiveTransform(corners, dstCorners, bestMatch.homography);
 
-    ctxOverlay.strokeStyle = "lime";
-    ctxOverlay.lineWidth = 4;
-    ctxOverlay.beginPath();
-    for (let i = 0; i < 4; i++) {
-      const x = dstCorners.data32F[i * 2];
-      const y = dstCorners.data32F[i * 2 + 1];
-      if (i === 0) ctxOverlay.moveTo(x, y);
-      else ctxOverlay.lineTo(x, y);
+    // get your 4 transformed corner points
+    const pts = dstCorners.data32F; // [x0,y0,  x1,y1,  x2,y2,  x3,y3]
+
+    // style
+    overlayCanvasContext.strokeStyle = "lime";
+    overlayCanvasContext.lineWidth = 4;
+
+    // build the polygon
+    overlayCanvasContext.beginPath();
+    // move to the very first corner
+    overlayCanvasContext.moveTo(pts[0], pts[1]);
+    // draw lines to the remaining corners
+    for (let i = 1; i < 4; i++) {
+      overlayCanvasContext.lineTo(pts[i * 2], pts[i * 2 + 1]);
     }
-    ctxOverlay.closePath();
-    ctxOverlay.stroke();
+    overlayCanvasContext.closePath(); // closes back to (pts[0], pts[1])
+    overlayCanvasContext.stroke();
 
     bestMatch.homography.delete();
     corners.delete();
@@ -343,9 +292,6 @@ function processVideoFrame(): void {
   } else {
     updateStatus("No match");
   }
-
-  stats.end();
-  videoElement.requestVideoFrameCallback(processVideoFrame);
 }
 
 // -----------------------------------------------------------------------------
@@ -357,15 +303,28 @@ function updateStatus(text: string): void {
 
 // -----------------------------------------------------------------------------
 // 4. onRuntimeInitialized → set up ORB + BFMatcher, load refs, start camera
-function onOpenCvReady(): void {
+const onOpenCvReady = async () => {
   orb = new cv.ORB(1000); // try 1000 if refs are 600px
   bfMatcher = new cv.BFMatcher(cv.NORM_HAMMING, false);
 
   updateStatus("OpenCV.js ready. Loading references...");
-  loadReferenceImages().then(() => {
-    updateStatus("References loaded. Starting camera...");
-    initCamera();
-  });
-}
+
+  await loadReferenceImages();
+  updateStatus("References loaded. Starting camera...");
+
+  try {
+    await startCamera({
+      videoElement: cameraSource,
+      canvasElement: cameraCanvas,
+      onEachCameraFrame: processCameraFrame,
+      options: {
+        showFps: true,
+        resolution: "720p", // Default resolution
+      },
+    });
+  } catch (err) {
+    alert(`Error initializing camera: ${err}`);
+  }
+};
 
 cv.onRuntimeInitialized = onOpenCvReady;
